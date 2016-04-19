@@ -33,6 +33,7 @@
 #include "ompi/errhandler/errhandler.h"
 #include "ompi/info/info.h"
 #include "opal/mca/mpool/mpool.h"
+#include "ompi/hooks/ompi_hooks.h"
 
 #if OMPI_BUILD_MPI_PROFILING
 #if OPAL_HAVE_WEAK_SYMBOLS
@@ -89,6 +90,10 @@ int MPI_Alloc_mem(MPI_Aint size, MPI_Info info, void *baseptr)
         return OMPI_ERRHANDLER_INVOKE(MPI_COMM_WORLD, MPI_ERR_NO_MEM,
                                       FUNC_NAME);
     }
+
+    OMPI_CALL_HOOKS(OMPI_HOOK_ALLOC_MEM,
+                    ompi_alloc_mem_hook_fn_t,
+                    *((void **) baseptr), size);
 
     /* All done */
     return MPI_SUCCESS;

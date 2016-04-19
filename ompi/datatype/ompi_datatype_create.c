@@ -25,6 +25,7 @@
 #include "opal/class/opal_pointer_array.h"
 #include "ompi/datatype/ompi_datatype.h"
 #include "ompi/attribute/attribute.h"
+#include "ompi/hooks/ompi_hooks.h"
 
 static void __ompi_datatype_allocate( ompi_datatype_t* datatype )
 {
@@ -80,6 +81,10 @@ int32_t ompi_datatype_destroy( ompi_datatype_t** type)
 
     if( ompi_datatype_is_predefined(pData) && (pData->super.super.obj_reference_count <= 1) )
         return OMPI_ERROR;
+
+    OMPI_CALL_HOOKS(OMPI_HOOK_DESTROY_TYPE,
+                    ompi_datatype_destroy_hook_fn_t,
+                    pData);
 
     OBJ_RELEASE(pData);
     *type = NULL;
