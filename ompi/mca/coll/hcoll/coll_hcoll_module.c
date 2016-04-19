@@ -9,6 +9,7 @@
 
 #include "ompi_config.h"
 #include "coll_hcoll.h"
+#include "coll_hcoll_dtypes.h"
 
 int hcoll_comm_attr_keyval;
 
@@ -353,6 +354,18 @@ mca_coll_hcoll_comm_query(struct ompi_communicator_t *comm, int *priority)
 
     if (!cm->libhcoll_initialized) {
         cm->libhcoll_initialized = true;
+        if (mca_coll_hcoll_component.derived_types_support_enabled) {
+            OBJ_CONSTRUCT(&mca_coll_hcoll_component.derived_types_map,
+                          opal_hash_table_t);
+            opal_hash_table_init(&mca_coll_hcoll_component.derived_types_map, 64);
+            ompi_datatype_create_struct_hook_register(hcoll_dtype_create_struct_hook);
+            ompi_datatype_create_vector_hook_register(hcoll_dtype_create_vector_hook);
+            ompi_datatype_destroy_hook_register(hcoll_dtype_destroy_hook);
+        }
+        if (mca_coll_hcoll_component.mpi_alloc_mem_hook_enabled) {
+            ompi_alloc_mem_hook_register(hcoll_alloc_mem_hook);
+            ompi_free_mem_hook_register(hcoll_free_mem_hook);
+        }
     }
 
     return module;

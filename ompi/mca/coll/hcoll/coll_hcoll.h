@@ -32,6 +32,8 @@
 
 
 #include "coll_hcoll_debug.h"
+#include "ompi/hooks/ompi_hooks.h"
+
 #ifndef HCOLL_VERSION
 #define HCOLL_VERSION(major, minor) (((major)<<HCOLL_MAJOR_BIT)|((minor)<<HCOLL_MINOR_BIT))
 #endif
@@ -89,6 +91,9 @@ struct mca_coll_hcoll_component_t {
     /* FCA global stuff */
     mca_coll_hcoll_ops_t hcoll_ops;
     opal_free_list_t requests;
+    opal_hash_table_t derived_types_map;
+    int derived_types_support_enabled;
+    int mpi_alloc_mem_hook_enabled;
 };
 typedef struct mca_coll_hcoll_component_t mca_coll_hcoll_component_t;
 
@@ -303,6 +308,10 @@ int mca_coll_hcoll_igatherv(const void* sbuf, int scount,
 
 int mca_coll_hcoll_progress(void);
 void mca_coll_hcoll_mem_release_cb(void *buf, size_t length, void *cbdata, bool from_alloc);
+
+int hcoll_alloc_mem_hook(void *addr, size_t len);
+int hcoll_free_mem_hook(void *addr);
+
 END_C_DECLS
 
 #endif
