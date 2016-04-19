@@ -92,6 +92,7 @@
 #include "ompi/mca/pml/base/pml_base_bsend.h"
 #include "ompi/dpm/dpm.h"
 #include "ompi/mpiext/mpiext.h"
+#include "ompi/hooks/ompi_hooks.h"
 
 #if OPAL_ENABLE_FT_CR == 1
 #include "ompi/mca/crcp/crcp.h"
@@ -534,6 +535,11 @@ int ompi_mpi_init(int argc, char **argv, int requested, int *provided)
     if ((OPAL_ENABLE_PROGRESS_THREADS == 1) ||
         (*provided != MPI_THREAD_SINGLE)) {
         opal_set_using_threads(true);
+    }
+
+    if (OMPI_SUCCESS != (ret = ompi_hooks_init())) {
+        error = "ompi_hooks_init() failed";
+        goto error;
     }
 
     /* initialize datatypes. This step should be done early as it will

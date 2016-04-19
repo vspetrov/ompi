@@ -80,6 +80,7 @@
 #include "ompi/runtime/params.h"
 #include "ompi/dpm/dpm.h"
 #include "ompi/mpiext/mpiext.h"
+#include "ompi/hooks/ompi_hooks.h"
 
 #if OPAL_ENABLE_FT_CR == 1
 #include "ompi/mca/crcp/crcp.h"
@@ -345,6 +346,9 @@ int ompi_mpi_finalize(void)
 #endif
 
     /* Free secondary resources */
+    if (OMPI_SUCCESS != (ret = ompi_hooks_finalize())) {
+                return ret;
+    }
 
     /* free attr resources */
     if (OMPI_SUCCESS != (ret = ompi_attr_finalize())) {
