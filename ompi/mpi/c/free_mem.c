@@ -28,6 +28,7 @@
 #include "ompi/communicator/communicator.h"
 #include "ompi/errhandler/errhandler.h"
 #include "opal/mca/mpool/mpool.h"
+#include "ompi/hooks/ompi_hooks.h"
 
 #if OMPI_BUILD_MPI_PROFILING
 #if OPAL_HAVE_WEAK_SYMBOLS
@@ -42,6 +43,10 @@ static const char FUNC_NAME[] = "MPI_Free_mem";
 int MPI_Free_mem(void *baseptr)
 {
     OPAL_CR_ENTER_LIBRARY();
+
+    OMPI_CALL_HOOKS(OMPI_HOOK_FREE_MEM,
+                    ompi_free_mem_hook_fn_t,
+                    baseptr);
 
     /* Per these threads:
 
