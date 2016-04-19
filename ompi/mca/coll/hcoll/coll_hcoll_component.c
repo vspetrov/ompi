@@ -17,6 +17,7 @@
 
 #include "coll_hcoll.h"
 #include "opal/mca/installdirs/installdirs.h"
+#include "coll_hcoll_dtypes.h"
 
 /*
  * Public string showing the coll ompi_hcol component version number
@@ -174,6 +175,17 @@ static int hcoll_register(void)
                   &mca_coll_hcoll_component.hcoll_datatype_fallback,
                   0));
 
+    CHECK(reg_int("dts",NULL,
+                  "[1|0|] Enable/Disable derived types support",
+                  0,
+                  &mca_coll_hcoll_component.derived_types_support_enabled,
+                  0));
+    CHECK(reg_int("amh",NULL,
+                  "[1|0|] Enable/Disable MPI_Alloc_mem hook for coll/hcoll component",
+                  0,
+                  &mca_coll_hcoll_component.mpi_alloc_mem_hook_enabled,
+                  0));
+
     mca_coll_hcoll_component.compiletime_version = HCOLL_VERNO_STRING;
     mca_base_component_var_register(&mca_coll_hcoll_component.super.collm_version,
             MCA_COMPILETIME_VER,
@@ -236,6 +248,19 @@ static int hcoll_close(void)
 
     if (cm->using_mem_hooks) {
         opal_mem_hooks_unregister_release(mca_coll_hcoll_mem_release_cb);
+    }
+
+    if (mca_coll_hcoll_component.derived_types_support_enabled) {
+        OBJ_DESTRUCT(&mca_coll_hcoll_component.derived_types_map);
+        ompi_datatype_create_struct_hook_deregister(hcoll_dtype_create_struct_hook);
+        ompi_datatype_create_vector_hook_deregister(hcoll_dtype_create_vector_hook);
+        ompi_datatype_destroy_hook_deregister(hcoll_dtype_destroy_hook);
+        /*TODO iterate through the hash table and destroy dte type in case
+          user forgot to call MPI_Type_free */
+    }
+    if (mca_coll_hcoll_component.mpi_alloc_mem_hook_enabled) {
+        ompi_alloc_mem_hook_deregister(hcoll_alloc_mem_hook);
+        ompi_free_mem_hook_deregister(hcoll_free_mem_hook);
     }
 
 #if HCOLL_API >= HCOLL_VERSION(3,2)

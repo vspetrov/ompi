@@ -66,19 +66,42 @@ static dte_data_representation_t* ompi_datatype_2_dte_data_rep[OPAL_DATATYPE_MAX
     &DTE_ZERO                   /*OPAL_DATATYPE_UNAVAILABLE    24 */
 };
 
-static dte_data_representation_t ompi_dtype_2_dte_dtype(ompi_datatype_t *dtype){
+static dte_data_representation_t* find_derived_mapping(ompi_datatype_t *dtype){
+    dte_data_representation_t *dte;
+    if (mca_coll_hcoll_component.derived_types_support_enabled) {
+        int ret = opal_hash_table_get_value_uint32(&mca_coll_hcoll_component.derived_types_map,
+                                                   dtype->id, (void**)&dte);
+        if (OPAL_SUCCESS == ret) {
+            return dte;
+        }
+    }
+    return NULL;
+}
+
+enum {
+    TRY_FIND_DERIVED,
+    NO_DERIVED
+};
+
+static dte_data_representation_t ompi_dtype_2_dte_dtype(ompi_datatype_t *dtype,
+                                                        const int mode)
+{
     int ompi_type_id = dtype->id;
     int opal_type_id = dtype->super.id;
-    dte_data_representation_t dte_data_rep;
+    dte_data_representation_t *dte_data_rep = NULL;
     if (!(dtype->super.flags & OPAL_DATATYPE_FLAG_NO_GAPS)) {
         ompi_type_id = -1;
     }
     if (OPAL_UNLIKELY( ompi_type_id < 0 ||
                        ompi_type_id >= OPAL_DATATYPE_MAX_PREDEFINED)){
-        dte_data_rep = DTE_ZERO;
-        dte_data_rep.rep.in_line_rep.data_handle.in_line.in_line = 0;
-        dte_data_rep.rep.in_line_rep.data_handle.pointer_to_handle = (uint64_t ) &dtype->super;
-        return dte_data_rep;
+
+        if (TRY_FIND_DERIVED == mode) dte_data_rep = find_derived_mapping(dtype);
+
+        if (dte_data_rep) {
+            return *dte_data_rep;
+        } else {
+            return DTE_ZERO;
+        }
     }
     return *ompi_datatype_2_dte_data_rep[opal_type_id];
 }
@@ -107,5 +130,11 @@ static hcoll_dte_op_t* ompi_op_2_hcolrte_op(ompi_op_t *op) {
     }
     return ompi_op_2_hcoll_op[op->o_f_to_c_index];
 }
+
+int32_t hcoll_dtype_create_vector_hook( int count, int bLength, int stride,
+                                        const ompi_datatype_t* oldType, ompi_datatype_t* newType );
+int32_t hcoll_dtype_create_struct_hook(int count, const int* pBlockLength, const OPAL_PTRDIFF_TYPE* pDisp,
+                                       ompi_datatype_t* const* pTypes, ompi_datatype_t* newType );
+int32_t hcoll_dtype_destroy_hook( ompi_datatype_t* dtype );
 
 #endif /* COLL_HCOLL_DTYPES_H */
