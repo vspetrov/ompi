@@ -17,6 +17,7 @@
 
 #include "coll_hcoll.h"
 #include "opal/mca/installdirs/installdirs.h"
+#include "coll_hcoll_dtypes.h"
 
 /*
  * Public string showing the coll ompi_hcol component version number
@@ -172,6 +173,12 @@ static int hcoll_register(void)
                   "[1|0|] Enable/Disable user defined dattypes fallback",
                   1,
                   &mca_coll_hcoll_component.hcoll_datatype_fallback,
+                  0));
+
+    CHECK(reg_int("dts",NULL,
+                  "[1|0|] Enable/Disable derived types support",
+                  0,
+                  &mca_coll_hcoll_component.derived_types_support_enabled,
                   0));
 
     mca_coll_hcoll_component.compiletime_version = HCOLL_VERNO_STRING;

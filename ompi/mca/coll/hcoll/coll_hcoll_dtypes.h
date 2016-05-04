@@ -8,6 +8,7 @@
 #include "ompi/datatype/ompi_datatype.h"
 #include "ompi/mca/op/op.h"
 #include "hcoll/api/hcoll_dte.h"
+extern int hcoll_type_attr_keyval;
 
 /*to keep this at hand: Ids of the basic opal_datatypes:
 #define OPAL_DATATYPE_INT1           4
@@ -66,19 +67,39 @@ static dte_data_representation_t* ompi_datatype_2_dte_data_rep[OPAL_DATATYPE_MAX
     &DTE_ZERO                   /*OPAL_DATATYPE_UNAVAILABLE    24 */
 };
 
-static dte_data_representation_t ompi_dtype_2_dte_dtype(ompi_datatype_t *dtype){
+int hcoll_map_derived_type(ompi_datatype_t *dtype,
+                           dte_data_representation_t **dte);
+
+static dte_data_representation_t find_derived_mapping(ompi_datatype_t *dtype){
+    dte_data_representation_t *dte = &DTE_ZERO;
+    if (mca_coll_hcoll_component.derived_types_support_enabled) {
+        if (!dtype->d_keyhash || OPAL_SUCCESS != opal_hash_table_get_value_uint32(dtype->d_keyhash,
+                                                                                  hcoll_type_attr_keyval, (void**)&dte)) {
+            hcoll_map_derived_type(dtype, &dte);
+        }
+    }
+    return *dte;
+}
+
+enum {
+    TRY_FIND_DERIVED,
+    NO_DERIVED
+};
+
+static dte_data_representation_t ompi_dtype_2_dte_dtype( ompi_datatype_t *dtype,
+                                                        const int mode)
+{
     int ompi_type_id = dtype->id;
     int opal_type_id = dtype->super.id;
-    dte_data_representation_t dte_data_rep;
+    dte_data_representation_t *dte_data_rep = NULL;
     if (!(dtype->super.flags & OPAL_DATATYPE_FLAG_NO_GAPS)) {
         ompi_type_id = -1;
     }
     if (OPAL_UNLIKELY( ompi_type_id < 0 ||
                        ompi_type_id >= OPAL_DATATYPE_MAX_PREDEFINED)){
-        dte_data_rep = DTE_ZERO;
-        dte_data_rep.rep.in_line_rep.data_handle.in_line.in_line = 0;
-        dte_data_rep.rep.in_line_rep.data_handle.pointer_to_handle = (uint64_t ) &dtype->super;
-        return dte_data_rep;
+        if (TRY_FIND_DERIVED == mode)
+            return find_derived_mapping(dtype);
+        return DTE_ZERO;
     }
     return *ompi_datatype_2_dte_data_rep[opal_type_id];
 }
@@ -106,6 +127,24 @@ static hcoll_dte_op_t* ompi_op_2_hcolrte_op(ompi_op_t *op) {
         return ompi_op_2_hcoll_op[0]; /* return null */
     }
     return ompi_op_2_hcoll_op[op->o_f_to_c_index];
+}
+
+
+
+
+
+static int hcoll_type_attr_del_fn(MPI_Datatype type, int keyval, void *attr_val, void *extra) {
+    int ret = OMPI_SUCCESS;
+    dte_data_representation_t *dte =
+        (dte_data_representation_t*) attr_val;
+
+    assert(dte);
+    if (HCOLL_SUCCESS != (ret = hcoll_dte_destroy(dte))) {
+        HCOL_ERROR("failed to delete type attr: hcoll_dte_destroy returned %d",ret);
+        return OMPI_ERROR;
+    }
+
+    return OMPI_SUCCESS;
 }
 
 #endif /* COLL_HCOLL_DTYPES_H */
