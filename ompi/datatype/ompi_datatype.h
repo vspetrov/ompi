@@ -85,6 +85,18 @@ typedef struct ompi_datatype_t ompi_datatype_t;
 
 OMPI_DECLSPEC OBJ_CLASS_DECLARATION(ompi_datatype_t);
 
+typedef struct __dt_args {
+    int                ref_count;
+    int                create_type;
+    size_t             total_pack_size;
+    int                ci;
+    int                ca;
+    int                cd;
+    int*               i;
+    OPAL_PTRDIFF_TYPE* a;
+    ompi_datatype_t**  d;
+} ompi_datatype_args_t;
+
 /**
  * Padded struct to maintain back compatibiltiy.
  * See opal/communicator/communicator.h comments with struct opal_communicator_t

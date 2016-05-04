@@ -43,18 +43,6 @@ static ompi_datatype_t*
 __ompi_datatype_create_from_args( int32_t* i, OPAL_PTRDIFF_TYPE * a,
                                   ompi_datatype_t** d, int32_t type );
 
-typedef struct __dt_args {
-    int                ref_count;
-    int                create_type;
-    size_t             total_pack_size;
-    int                ci;
-    int                ca;
-    int                cd;
-    int*               i;
-    OPAL_PTRDIFF_TYPE* a;
-    ompi_datatype_t**  d;
-} ompi_datatype_args_t;
-
 /**
  * Some architectures really don't like having unaligned
  * accesses.  We'll be int aligned, because any sane system will
