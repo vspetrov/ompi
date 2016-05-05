@@ -73,10 +73,11 @@ int hcoll_map_derived_type(ompi_datatype_t *dtype,
 static dte_data_representation_t find_derived_mapping(ompi_datatype_t *dtype){
     dte_data_representation_t *dte = &DTE_ZERO;
     if (mca_coll_hcoll_component.derived_types_support_enabled) {
-        if (!dtype->d_keyhash || OPAL_SUCCESS != opal_hash_table_get_value_uint32(dtype->d_keyhash,
-                                                                                  hcoll_type_attr_keyval, (void**)&dte)) {
+        int map_found = 0;
+        ompi_attr_get_c(dtype->d_keyhash, hcoll_type_attr_keyval,
+                        (void**)&dte, &map_found);
+        if (!map_found)
             hcoll_map_derived_type(dtype, &dte);
-        }
     }
     return *dte;
 }
