@@ -755,34 +755,67 @@ int32_t hcoll_dtype_create_struct(int count, const int* pBlockLength, const OPAL
 
 int hcoll_map_derived_type(ompi_datatype_t *dtype, dte_data_representation_t **new_dte)
 {
-    ompi_datatype_args_t* pArgs = (ompi_datatype_args_t*)dtype->args;
-
-    int ret;
-    if (NULL == pArgs) {
+    int rc;
+    int num_integers, num_addresses, num_datatypes, combiner;
+    const int max_stack_arr = 5;
+    int array_of_integers[max_stack_arr];
+    MPI_Aint array_of_addresses[max_stack_arr];
+    MPI_Datatype array_of_datatypes[max_stack_arr];
+    int *aoi = array_of_integers;
+    MPI_Aint *aoa = array_of_addresses;
+    MPI_Datatype *aod = array_of_datatypes;
+    if (NULL == dtype->args) {
         /* predefined type, shouldn't call this */
         return OMPI_SUCCESS;
     }
-    switch (pArgs->create_type) {
+    rc = ompi_datatype_get_args( dtype, 0, &num_integers, NULL, &num_addresses, NULL,
+                                 &num_datatypes, NULL, &combiner );
+    if (MPI_SUCCESS != rc) {
+        HCOL_VERBOSE(1, "Failed to query dtype args size\n");
+        return rc;
+    }
+    if (num_integers > max_stack_arr)
+        aoi = (int*)malloc(num_integers*sizeof(int));
+    if (num_addresses > max_stack_arr)
+        aoa = (MPI_Aint*)malloc(num_integers*sizeof(MPI_Aint));
+    if (num_datatypes > max_stack_arr)
+        aod = (MPI_Datatype*)malloc(num_integers*sizeof(MPI_Datatype));
+
+    rc = ompi_datatype_get_args( dtype, 1, &num_integers, aoi,
+                                 &num_addresses, aoa,
+                                 &num_datatypes, aod, NULL );
+    if (MPI_SUCCESS != rc) {
+        HCOL_VERBOSE(1, "Failed to query dtype args\n");
+        goto Cleanup;
+    }
+
+    switch (combiner) {
     case MPI_COMBINER_VECTOR:
-        hcoll_dtype_create_vector( pArgs->i[0], pArgs->i[1],
-                                   pArgs->i[2], pArgs->d[0],
+        hcoll_dtype_create_vector( aoi[0], aoi[1],
+                                   aoi[2], aod[0],
                                    new_dte );
         break;
     case MPI_COMBINER_STRUCT:
-        hcoll_dtype_create_struct( pArgs->i[0], &pArgs->i[1],
-                                   pArgs->a, pArgs->d,
+        hcoll_dtype_create_struct( aoi[0], &aoi[1],
+                                   aoa, aod,
                                    new_dte );
         break;
     default:
         break;
     };
 
-    ret = ompi_attr_set_c(TYPE_ATTR, (void*)dtype, &(dtype->d_keyhash), hcoll_type_attr_keyval, (void *)(*new_dte), false);
-    if (OMPI_SUCCESS != ret) {
+    rc = ompi_attr_set_c(TYPE_ATTR, (void*)dtype, &(dtype->d_keyhash), hcoll_type_attr_keyval, (void *)(*new_dte), false);
+    if (OMPI_SUCCESS != rc) {
         HCOL_VERBOSE(1,"hcoll ompi_attr_set_c failed for derived dtype");
-        return OMPI_ERROR;
+        goto Cleanup;
     }
-    return OMPI_SUCCESS;
+Cleanup:
+
+    if (aoi != array_of_integers)  free(aoi);
+    if (aoa != array_of_addresses) free(aoa);
+    if (aod != array_of_datatypes) free(aod);
+    
+    return rc;
 }
 #else
 int hcoll_map_derived_type(ompi_datatype_t *dtype, dte_data_representation_t **new_dte)
