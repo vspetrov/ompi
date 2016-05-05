@@ -69,8 +69,11 @@ int mca_coll_hcoll_allgather(const void *sbuf, int scount,
     int rc;
     HCOL_VERBOSE(20,"RUNNING HCOL ALLGATHER");
     mca_coll_hcoll_module_t *hcoll_module = (mca_coll_hcoll_module_t*)module;
-    stype = ompi_dtype_2_dte_dtype(sdtype, NO_DERIVED);
-    rtype = ompi_dtype_2_dte_dtype(rdtype, NO_DERIVED);
+    stype = ompi_dtype_2_dte_dtype(sdtype, TRY_FIND_DERIVED);
+    rtype = ompi_dtype_2_dte_dtype(rdtype, TRY_FIND_DERIVED);
+    if (sbuf == MPI_IN_PLACE) {
+        stype = rtype;
+    }
     if (OPAL_UNLIKELY((HCOL_DTE_IS_ZERO(stype) || HCOL_DTE_IS_ZERO(rtype)
                         || HCOL_DTE_IS_COMPLEX(stype) || HCOL_DTE_IS_COMPLEX(rtype)))
                         && mca_coll_hcoll_component.hcoll_datatype_fallback){
