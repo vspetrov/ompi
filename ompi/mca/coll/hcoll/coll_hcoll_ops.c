@@ -697,6 +697,7 @@ int mca_coll_hcoll_igatherv(const void* sbuf, int scount,
 
 }
 
+#if HCOLL_API >= HCOLL_VERSION(3,5)
 static
 int32_t hcoll_dtype_create_vector( int count, int bLength, int stride,
                                    ompi_datatype_t* oldType, dte_data_representation_t** newType )
@@ -783,3 +784,11 @@ int hcoll_map_derived_type(ompi_datatype_t *dtype, dte_data_representation_t **n
     }
     return OMPI_SUCCESS;
 }
+#else
+int hcoll_map_derived_type(ompi_datatype_t *dtype, dte_data_representation_t **new_dte)
+{
+    /*Do nothing - it's an old version of hcoll w/o dtypes support */
+    return OMPI_SUCCESS;
+}
+
+#endif

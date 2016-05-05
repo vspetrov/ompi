@@ -132,7 +132,7 @@ static hcoll_dte_op_t* ompi_op_2_hcolrte_op(ompi_op_t *op) {
 
 
 
-
+#if HCOLL_API >= HCOLL_VERSION(3,5)
 static int hcoll_type_attr_del_fn(MPI_Datatype type, int keyval, void *attr_val, void *extra) {
     int ret = OMPI_SUCCESS;
     dte_data_representation_t *dte =
@@ -146,5 +146,10 @@ static int hcoll_type_attr_del_fn(MPI_Datatype type, int keyval, void *attr_val,
 
     return OMPI_SUCCESS;
 }
-
+#else
+static int hcoll_type_attr_del_fn(MPI_Datatype type, int keyval, void *attr_val, void *extra) {
+    /*Do nothing - it's an old version of hcoll w/o dtypes support */
+    return OMPI_SUCCESS;
+}
+#endif
 #endif /* COLL_HCOLL_DTYPES_H */

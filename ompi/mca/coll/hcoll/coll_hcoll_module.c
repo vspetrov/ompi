@@ -291,15 +291,17 @@ mca_coll_hcoll_comm_query(struct ompi_communicator_t *comm, int *priority)
             return NULL;
         }
 
-        copy_fn.attr_datatype_copy_fn = (MPI_Type_internal_copy_attr_function *) MPI_TYPE_NULL_COPY_FN;
-        del_fn.attr_datatype_delete_fn = hcoll_type_attr_del_fn;
-        err = ompi_attr_create_keyval(TYPE_ATTR, copy_fn, del_fn, &hcoll_type_attr_keyval, NULL ,0, NULL);
-        if (OMPI_SUCCESS != err) {
-            cm->hcoll_enable = 0;
-            hcoll_finalize();
-            opal_progress_unregister(mca_coll_hcoll_progress);
-            HCOL_ERROR("Hcol type keyval create failed");
-            return NULL;
+        if (mca_coll_hcoll_component.derived_types_support_enabled) {
+            copy_fn.attr_datatype_copy_fn = (MPI_Type_internal_copy_attr_function *) MPI_TYPE_NULL_COPY_FN;
+            del_fn.attr_datatype_delete_fn = hcoll_type_attr_del_fn;
+            err = ompi_attr_create_keyval(TYPE_ATTR, copy_fn, del_fn, &hcoll_type_attr_keyval, NULL ,0, NULL);
+            if (OMPI_SUCCESS != err) {
+                cm->hcoll_enable = 0;
+                hcoll_finalize();
+                opal_progress_unregister(mca_coll_hcoll_progress);
+                HCOL_ERROR("Hcol type keyval create failed");
+                return NULL;
+            }
         }
     }
 
