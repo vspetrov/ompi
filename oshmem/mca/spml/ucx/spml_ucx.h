@@ -182,9 +182,7 @@ mca_spml_ucx_get_mkey(shmem_ctx_t ctx, int pe, void *va, void **rva, mca_spml_uc
                 spml_ucx_mkey_t *new_ucx_mkey = &(ucx_ctx->ucp_peers[pe].mkeys[segno].key);
                 size_t len;
 
-                new_mkey->spml_context = new_ucx_mkey;
-
-                ucp_rkey_pack(mca_spml_ucx.ucp_context, mkey->key.mem_h, 
+                ucp_rkey_pack(mca_spml_ucx.ucp_context, mkey->key.mem_h,
                               &(new_mkey->u.data), &len);
                 
                 ucp_ep_rkey_unpack(ucx_ctx->ucp_peers[pe].ucp_conn,

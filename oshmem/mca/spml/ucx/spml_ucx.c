@@ -312,6 +312,10 @@ static
 spml_ucx_mkey_t * mca_spml_ucx_get_mkey_slow(shmem_ctx_t ctx, int pe, void *va, void **rva)
 {
     sshmem_mkey_t *r_mkey;
+    spml_ucx_mkey_t *ucx_mkey;
+    uint32_t segno;
+    mca_spml_ucx_ctx_t *ucx_ctx = (mca_spml_ucx_ctx_t *)ctx;
+    ucs_status_t err;
 
     r_mkey = mca_memheap_base_get_cached_mkey(ctx, pe, va, 0, rva);
     if (OPAL_UNLIKELY(!r_mkey)) {
@@ -320,11 +324,19 @@ spml_ucx_mkey_t * mca_spml_ucx_get_mkey_slow(shmem_ctx_t ctx, int pe, void *va, 
         oshmem_shmem_abort(-1);
         return NULL;
     }
-    return (spml_ucx_mkey_t *)(r_mkey->spml_context);
+
+    segno = memheap_find_segnum(va);
+    ucx_mkey = &ucx_ctx->ucp_peers[pe].mkeys[segno].key;
+
+    err = ucp_ep_rkey_unpack(ucx_ctx->ucp_peers[pe].ucp_conn,
+                             r_mkey->u.data,
+                             &ucx_mkey->rkey);
+    return ucx_mkey;
 }
 
 void mca_spml_ucx_rmkey_free(sshmem_mkey_t *mkey)
 {
+    /*
     spml_ucx_mkey_t   *ucx_mkey;
 
     if (!mkey->spml_context) {
@@ -332,14 +344,16 @@ void mca_spml_ucx_rmkey_free(sshmem_mkey_t *mkey)
     }
     ucx_mkey = (spml_ucx_mkey_t *)(mkey->spml_context);
     ucp_rkey_destroy(ucx_mkey->rkey);
+    */
 }
 
-void *mca_spml_ucx_rmkey_ptr(const void *dst_addr, sshmem_mkey_t *mkey, int pe)
+void *mca_spml_ucx_rmkey_ptr(shmem_ctx_t ctx, const void *dst_addr, int segno, int pe)
 {
 #if (((UCP_API_MAJOR >= 1) && (UCP_API_MINOR >= 3)) || (UCP_API_MAJOR >= 2))
     void *rva;
     ucs_status_t err;
-    spml_ucx_mkey_t *ucx_mkey = (spml_ucx_mkey_t *)(mkey->spml_context);
+    mca_spml_ucx_ctx_t *ucx_ctx = (mca_spml_ucx_ctx_t *)ctx;
+    spml_ucx_mkey_t *ucx_mkey = &ucx_ctx->ucp_peers[pe].mkeys[segno].key;
 
     err = ucp_rkey_ptr(ucx_mkey->rkey, (uint64_t)dst_addr, &rva);
     if (UCS_OK != err) {
@@ -525,7 +539,7 @@ int mca_spml_ucx_ctx_create(long options, shmem_ctx_t *ctx)
     mca_spml_ucx_ctx_list_item_t *ctx_item;
     ucp_worker_params_t params;
     ucp_ep_params_t ep_params;
-    size_t i, nprocs = oshmem_num_procs();
+    size_t i, j, nprocs = oshmem_num_procs();
     ucs_status_t err;
     int rc = OSHMEM_ERROR;
 
@@ -561,6 +575,10 @@ int mca_spml_ucx_ctx_create(long options, shmem_ctx_t *ctx)
                        ucs_status_string(err));
             goto error2;
         }
+
+        for (j = 0; j < MCA_MEMHEAP_SEG_COUNT; j++) {
+            ctx_item->ctx.ucp_peers[i].mkeys[j].key.rkey = NULL;
+        }
     }
 
     SHMEM_MUTEX_LOCK(mca_spml_ucx.internal_mutex);
@@ -594,7 +612,7 @@ int mca_spml_ucx_ctx_create(long options, shmem_ctx_t *ctx)
 void mca_spml_ucx_ctx_destroy(shmem_ctx_t ctx)
 {
     mca_spml_ucx_ctx_list_item_t *ctx_item, *next;
-    size_t i, nprocs = oshmem_num_procs();
+    size_t i, j, nprocs = oshmem_num_procs();
 
     MCA_SPML_CALL(quiet(ctx));
 
@@ -612,6 +630,12 @@ void mca_spml_ucx_ctx_destroy(shmem_ctx_t ctx)
             del_procs = malloc(sizeof(*del_procs) * nprocs);
 
             for (i = 0; i < nprocs; ++i) {
+                for (j = 0; j < MCA_MEMHEAP_SEG_COUNT; j++) {
+                    if (ctx_item->ctx.ucp_peers[i].mkeys[j].key.rkey != NULL) {
+                        ucp_rkey_destroy(ctx_item->ctx.ucp_peers[i].mkeys[j].key.rkey);
+                    }
+                }
+
                 del_procs[i].ep   = ctx_item->ctx.ucp_peers[i].ucp_conn;
                 del_procs[i].vpid = i;
                 ctx_item->ctx.ucp_peers[i].ucp_conn = NULL;
