@@ -347,12 +347,13 @@ void mca_spml_ucx_rmkey_free(sshmem_mkey_t *mkey)
     */
 }
 
-void *mca_spml_ucx_rmkey_ptr(shmem_ctx_t ctx, const void *dst_addr, int segno, int pe)
+void *mca_spml_ucx_rmkey_ptr(const void *dst_addr, sshmem_mkey_t *key, int pe)
 {
 #if (((UCP_API_MAJOR >= 1) && (UCP_API_MINOR >= 3)) || (UCP_API_MAJOR >= 2))
     void *rva;
     ucs_status_t err;
-    mca_spml_ucx_ctx_t *ucx_ctx = (mca_spml_ucx_ctx_t *)ctx;
+    mca_spml_ucx_ctx_t *ucx_ctx = (mca_spml_ucx_ctx_t *)&mca_spml_ucx_ctx_default;
+    uint32_t segno = memheap_find_segnum((void*)dst_addr);
     spml_ucx_mkey_t *ucx_mkey = &ucx_ctx->ucp_peers[pe].mkeys[segno].key;
 
     err = ucp_rkey_ptr(ucx_mkey->rkey, (uint64_t)dst_addr, &rva);
@@ -381,7 +382,6 @@ void mca_spml_ucx_rmkey_unpack(shmem_ctx_t ctx, sshmem_mkey_t *mkey, uint32_t se
         goto error_fatal;
     }
 
-    mkey->spml_context = ucx_mkey;
     mca_spml_ucx_cache_mkey(ucx_ctx, mkey, segno, pe);
     return;
 
@@ -444,7 +444,6 @@ sshmem_mkey_t *mca_spml_ucx_register(void* addr,
     mem_seg = memheap_find_seg(segno);
 
     ucx_mkey = &mca_spml_ucx_ctx_default.ucp_peers[my_pe].mkeys[segno].key;
-    mkeys[0].spml_context = ucx_mkey;
 
     /* if possible use mem handle already created by ucx allocator */
     if (MAP_SEGMENT_ALLOC_UCX != mem_seg->type) {
@@ -507,16 +506,16 @@ int mca_spml_ucx_deregister(sshmem_mkey_t *mkeys)
 {
     spml_ucx_mkey_t   *ucx_mkey;
     map_segment_t *mem_seg;
+    int segno;
+    int my_pe = oshmem_my_proc_id();
 
     MCA_SPML_CALL(quiet(oshmem_ctx_default));
-    if (!mkeys)
-        return OSHMEM_SUCCESS;
-
-    if (!mkeys[0].spml_context) 
+    if (!mkeys || !mkeys[0].va_base)
         return OSHMEM_SUCCESS;
 
     mem_seg  = memheap_find_va(mkeys[0].va_base);
-    ucx_mkey = (spml_ucx_mkey_t*)mkeys[0].spml_context;
+    segno = memheap_find_segnum(mkeys[0].va_base);
+    ucx_mkey = &mca_spml_ucx_ctx_default.ucp_peers[my_pe].mkeys[segno].key;
 
     if (OPAL_UNLIKELY(NULL == mem_seg)) {
         return OSHMEM_ERROR;
