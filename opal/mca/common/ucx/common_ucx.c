@@ -170,6 +170,7 @@ OPAL_DECLSPEC int opal_common_ucx_mca_pmix_fence(ucp_worker_h worker)
 
     while (!fenced) {
         ucp_worker_progress(worker);
+        opal_progress();
     }
 
     return ret;
