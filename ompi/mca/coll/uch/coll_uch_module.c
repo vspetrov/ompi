@@ -86,9 +86,10 @@ static int uch_comm_attr_del_fn(MPI_Comm comm, int keyval, void *attr_val, void 
 }
 
 
-static void oob_allgather(void *sbuf, void *rbuf, int msglen,
+static int oob_allgather(void *sbuf, void *rbuf, size_t msglen,
                           int my_rank, int *ranks, int nranks,  void *oob_coll_ctx) {
     ompi_communicator_t *comm = (ompi_communicator_t *)oob_coll_ctx;
+    if (!comm) comm = &ompi_mpi_comm_world.comm;
     if (ranks == NULL) {
         comm->c_coll->coll_allgather(sbuf, msglen, MPI_BYTE,
                                      rbuf, msglen, MPI_BYTE, comm,
@@ -117,6 +118,16 @@ static void oob_allgather(void *sbuf, void *rbuf, int msglen,
                               comm, MPI_STATUS_IGNORE));
         }
     }
+    return 0;
+}
+
+static int oob_allgather_ctx(void *sbuf, void *rbuf, size_t msglen, void* oob_coll_ctx) {
+    ompi_communicator_t *comm = &ompi_mpi_comm_world.comm;
+
+    comm->c_coll->coll_allgather(sbuf, msglen, MPI_BYTE,
+                                 rbuf, msglen, MPI_BYTE, comm,
+                                 comm->c_coll->coll_allgather_module);
+    return 0;
 }
 
 /*
@@ -139,6 +150,9 @@ static int mca_coll_uch_module_enable(mca_coll_base_module_t *module,
         uch_config_t config = {
             .flags = 0,
             .world_size = ompi_comm_size(&ompi_mpi_comm_world.comm),
+            .world_rank = ompi_comm_rank(&ompi_mpi_comm_world.comm),
+            .allgather = oob_allgather_ctx,
+            .oob_coll_ctx = NULL,
         };
 
         rc = uch_init_context(&config, &cm->uch_context);
