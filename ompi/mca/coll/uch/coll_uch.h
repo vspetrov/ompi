@@ -71,12 +71,13 @@ OMPI_MODULE_DECLSPEC extern mca_coll_uch_component_t mca_coll_uch_component;
  */
 struct mca_coll_uch_module_t {
     mca_coll_base_module_t              super;
-    ompi_communicator_t                 *comm;
+    ompi_communicator_t*                comm;
     int                                 rank;
     uch_comm_h                          uch_comm;
-    mca_coll_base_module_t              *previous_reduce_module;
     mca_coll_base_module_allreduce_fn_t previous_allreduce;
-    mca_coll_base_module_t              *previous_allreduce_module;
+    mca_coll_base_module_t*             previous_allreduce_module;
+    mca_coll_base_module_barrier_fn_t   previous_barrier;
+    mca_coll_base_module_t*             previous_barrier_module;
 };
 typedef struct mca_coll_uch_module_t mca_coll_uch_module_t;
 OBJ_CLASS_DECLARATION(mca_coll_uch_module_t);
@@ -90,5 +91,7 @@ mca_coll_base_module_t *mca_coll_uch_comm_query(struct ompi_communicator_t *comm
 int mca_coll_uch_allreduce(const void *sbuf, void *rbuf, int count, struct ompi_datatype_t *dtype,
                            struct ompi_op_t *op, struct ompi_communicator_t *comm,
                            mca_coll_base_module_t *module);
+int mca_coll_uch_barrier(struct ompi_communicator_t *comm,
+                         mca_coll_base_module_t *module);
 END_C_DECLS
 #endif

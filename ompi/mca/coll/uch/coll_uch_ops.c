@@ -53,3 +53,19 @@ fallback:
     return uch_module->previous_allreduce(sbuf, rbuf, count, dtype, op,
                                           comm, uch_module->previous_allreduce_module);
 }
+
+int mca_coll_uch_barrier(struct ompi_communicator_t *comm,
+                         mca_coll_base_module_t *module)
+{
+    uch_request_h req;
+    mca_coll_uch_module_t *uch_module = (mca_coll_uch_module_t*)module;
+
+    UCH_VERBOSE(20,"RUNNING UCH BARRIER");
+    COLL_UCH_CHECK(uch_barrier_init(uch_module->uch_comm, &req));
+    COLL_UCH_CHECK(uch_start(req));
+    COLL_UCH_CHECK(coll_uch_req_wait(req));
+    return OMPI_SUCCESS;
+fallback:
+    UCH_VERBOSE(20,"RUNNING FALLBACK BARRIER");
+    return uch_module->previous_barrier(comm, uch_module->previous_barrier_module);
+}
