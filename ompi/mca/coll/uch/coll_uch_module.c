@@ -23,9 +23,10 @@ int mca_coll_uch_init_query(bool enable_progress_threads, bool enable_mpi_thread
 
 static void mca_coll_uch_module_clear(mca_coll_uch_module_t *uch_module)
 {
-    uch_module->uch_comm         = NULL;
-    uch_module->previous_allreduce  = NULL;
-    uch_module->previous_barrier  = NULL;
+    uch_module->uch_comm           = NULL;
+    uch_module->previous_allreduce = NULL;
+    uch_module->previous_barrier   = NULL;
+    uch_module->previous_bcast     = NULL;
 }
 
 static void mca_coll_uch_module_construct(mca_coll_uch_module_t *uch_module)
@@ -52,6 +53,7 @@ static void mca_coll_uch_module_destruct(mca_coll_uch_module_t *uch_module)
     if (uch_module->uch_comm != NULL){
         OBJ_RELEASE_IF_NOT_NULL(uch_module->previous_allreduce_module);
         OBJ_RELEASE_IF_NOT_NULL(uch_module->previous_barrier_module);
+        OBJ_RELEASE_IF_NOT_NULL(uch_module->previous_bcast_module);
     }
     mca_coll_uch_module_clear(uch_module);
 }
@@ -71,6 +73,7 @@ static int mca_coll_uch_save_coll_handlers(mca_coll_uch_module_t *uch_module)
     comm = uch_module->comm;
     SAVE_PREV_COLL_API(allreduce);
     SAVE_PREV_COLL_API(barrier);
+    SAVE_PREV_COLL_API(bcast);
     return OMPI_SUCCESS;
 }
 
@@ -257,6 +260,7 @@ mca_coll_uch_comm_query(struct ompi_communicator_t *comm, int *priority)
     uch_module->super.coll_module_enable = mca_coll_uch_module_enable;
     uch_module->super.coll_allreduce     = mca_coll_uch_allreduce;
     uch_module->super.coll_barrier       = mca_coll_uch_barrier;
+    uch_module->super.coll_bcast         = mca_coll_uch_bcast;
     *priority = cm->uch_priority;
     return &uch_module->super;
 }

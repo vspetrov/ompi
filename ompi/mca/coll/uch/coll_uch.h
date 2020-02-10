@@ -78,6 +78,8 @@ struct mca_coll_uch_module_t {
     mca_coll_base_module_t*             previous_allreduce_module;
     mca_coll_base_module_barrier_fn_t   previous_barrier;
     mca_coll_base_module_t*             previous_barrier_module;
+    mca_coll_base_module_barrier_fn_t   previous_bcast;
+    mca_coll_base_module_t*             previous_bcast_module;
 };
 typedef struct mca_coll_uch_module_t mca_coll_uch_module_t;
 OBJ_CLASS_DECLARATION(mca_coll_uch_module_t);
@@ -93,5 +95,9 @@ int mca_coll_uch_allreduce(const void *sbuf, void *rbuf, int count, struct ompi_
                            mca_coll_base_module_t *module);
 int mca_coll_uch_barrier(struct ompi_communicator_t *comm,
                          mca_coll_base_module_t *module);
+int mca_coll_uch_bcast(void *buf, int count, struct ompi_datatype_t *dtype,
+                       int root, struct ompi_communicator_t *comm,
+                       mca_coll_base_module_t *module);
+
 END_C_DECLS
 #endif

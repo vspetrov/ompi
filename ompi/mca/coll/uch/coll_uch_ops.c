@@ -69,3 +69,22 @@ fallback:
     UCH_VERBOSE(20,"RUNNING FALLBACK BARRIER");
     return uch_module->previous_barrier(comm, uch_module->previous_barrier_module);
 }
+
+int mca_coll_uch_bcast(void *buf, int count, struct ompi_datatype_t *dtype,
+                       int root, struct ompi_communicator_t *comm,
+                       mca_coll_base_module_t *module)
+{
+    uch_request_h req;
+    ucc_dt_t ucc_dt;
+    mca_coll_uch_module_t *uch_module = (mca_coll_uch_module_t*)module;
+
+    UCH_VERBOSE(20,"RUNNING UCH BCAST");
+    ucc_dt = ompi_dtype_to_ucc_dtype(dtype);
+    COLL_UCH_CHECK(uch_bcast_init(buf, count, ucc_dt, root, uch_module->uch_comm, &req));
+    COLL_UCH_CHECK(uch_start(req));
+    COLL_UCH_CHECK(coll_uch_req_wait(req));
+    return OMPI_SUCCESS;
+fallback:
+    UCH_VERBOSE(20,"RUNNING FALLBACK BCAST");
+    return uch_module->previous_barrier(comm, uch_module->previous_barrier_module);
+}
