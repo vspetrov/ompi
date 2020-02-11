@@ -136,6 +136,10 @@ static int oob_allgather_ctx(void *sbuf, void *rbuf, size_t msglen, void* oob_co
     return 0;
 }
 
+int mca_coll_uch_progress(void) {
+    uch_progress(mca_coll_uch_component.uch_context);
+    return OPAL_SUCCESS;
+}
 /*
  * Initialize module on the communicator
  */
@@ -150,7 +154,7 @@ static int mca_coll_uch_module_enable(mca_coll_base_module_t *module,
         &mca_coll_uch_component;
     if (!cm->libuch_initialized)
     {
-        /* opal_progress_register(uch_progress_fn); */
+        opal_progress_register(mca_coll_uch_progress);
 
         UCH_VERBOSE(10,"Calling uch_init();");
         uch_config_t config = {
