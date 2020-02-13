@@ -78,7 +78,7 @@ struct mca_coll_uch_module_t {
     mca_coll_base_module_t*             previous_allreduce_module;
     mca_coll_base_module_barrier_fn_t   previous_barrier;
     mca_coll_base_module_t*             previous_barrier_module;
-    mca_coll_base_module_barrier_fn_t   previous_bcast;
+    mca_coll_base_module_bcast_fn_t     previous_bcast;
     mca_coll_base_module_t*             previous_bcast_module;
 };
 typedef struct mca_coll_uch_module_t mca_coll_uch_module_t;
