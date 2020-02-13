@@ -159,21 +159,5 @@ static int uch_open(void)
 
 static int uch_close(void)
 {
-    int rc;
-    mca_coll_uch_component_t *cm;
-    cm = &mca_coll_uch_component;
-
-    if (false == cm->libuch_initialized) {
-        return OMPI_SUCCESS;
-    }
-
-
-    UCH_VERBOSE(5,"UCH FINALIZE");
-    rc = uch_finalize(cm->uch_context);
-    if (UCC_OK != rc){
-        UCH_VERBOSE(1,"UCH library finalize failed");
-        return OMPI_ERROR;
-    }
-    /* opal_progress_unregister(uch_progress_fn); */
     return OMPI_SUCCESS;
 }

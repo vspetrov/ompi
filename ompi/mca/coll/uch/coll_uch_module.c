@@ -36,6 +36,12 @@ static void mca_coll_uch_module_construct(mca_coll_uch_module_t *uch_module)
 
 #define OBJ_RELEASE_IF_NOT_NULL( obj ) if( NULL != (obj) ) OBJ_RELEASE( obj );
 
+int mca_coll_uch_progress(void)
+{
+    uch_progress(mca_coll_uch_component.uch_context);
+    return OPAL_SUCCESS;
+}
+
 static void mca_coll_uch_module_destruct(mca_coll_uch_module_t *uch_module)
 {
     int context_destroyed;
@@ -88,6 +94,15 @@ static int uch_comm_attr_del_fn(MPI_Comm comm, int keyval, void *attr_val, void 
     mca_coll_uch_module_t *uch_module;
     uch_module = (mca_coll_uch_module_t*) attr_val;
     uch_comm_free(uch_module->uch_comm);
+    if (uch_module->comm == &ompi_mpi_comm_world.comm) {
+        if (mca_coll_uch_component.libuch_initialized) {
+            UCH_VERBOSE(5,"UCH FINALIZE");
+            if (UCC_OK != uch_finalize(mca_coll_uch_component.uch_context)) {
+                UCH_VERBOSE(1,"UCH library finalize failed");
+            }
+            opal_progress_unregister(mca_coll_uch_progress);
+        }
+    }
     return OMPI_SUCCESS;
 }
 
@@ -136,10 +151,6 @@ static int oob_allgather_ctx(void *sbuf, void *rbuf, size_t msglen, void* oob_co
     return 0;
 }
 
-int mca_coll_uch_progress(void) {
-    uch_progress(mca_coll_uch_component.uch_context);
-    return OPAL_SUCCESS;
-}
 /*
  * Initialize module on the communicator
  */
